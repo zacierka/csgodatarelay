@@ -1,7 +1,13 @@
+//go:build windows
+// +build windows
+
 package main
 
 import (
 	"fmt"
+	"os"
+	"os/signal"
+	"syscall"
 
 	"github.com/dank/go-csgsi"
 )
@@ -10,23 +16,36 @@ const steamID string = "76561198040749114"
 
 var (
 	playerstate_change bool = false
-	gameState          bool = false // live, over, freezetime
-	// need var to count rounds
 )
 
+/*
+ * TODO: figure out how to find start and end of game
+ */
 func main() {
+	c := make(chan os.Signal)
+	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
+	go func() {
+		<-c
+		fmt.Println("Exiting...")
+		sendAction("end_scene")
+		os.Exit(1)
+	}()
+
+	fmt.Println("[@] Starting CSGO Data Relay")
 	me := PlayerState{0, 0, 0}
 	game := csgsi.New(0)
+	go sendAction("start_scene") // init streamer.bot
 
 	go func() {
+		fmt.Println("Running...")
 		for state := range game.Channel {
-			if ingame := state.Player.State; ingame == nil { // Not in game
-				gameState = false
+			if state.Map == nil {
+				// Not in game
 				continue
 			}
 
-			if state.Player.State != nil && gameState !=  {
-				gameState = true
+			if state.Map.Phase == "gameover" {
+				go sendUpdateEvent(PlayerState{0, 0, 0}) // GameOver reset. gets triggered twice so ignore that for now
 			}
 
 			playerstate_change = false
@@ -53,12 +72,11 @@ func main() {
 				playerstate_change = true
 			}
 
-			if playerstate_change {
-				// send to streamer.bot
+			if playerstate_change { // fired only when an update is needed
 				fmt.Printf("Switch stats updated %d\n", me)
+				go sendUpdateEvent(me)
 			}
 		}
 	}()
-
-	game.Listen(":3000")
+	game.Listen("127.0.0.1:3000")
 }

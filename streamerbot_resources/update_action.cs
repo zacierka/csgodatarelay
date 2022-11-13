@@ -4,39 +4,29 @@ public class CPHInline
 {
 	public bool Execute()
 	{
-		
 		if(!CPH.ObsIsConnected())
 		{
 			return false;
 		}
 
-		string action = args["action"].ToString();	
-		string data = args["value"].ToString();
+		string kill = args["kills"].ToString();
+		string death = args["deaths"].ToString();
+		string assist = args["assists"].ToString();
 
-		updateData(action, data);
+		updateData(kill, death, assist);
 
 		return true;
 	}
 
-    private void updateData(string action, string data)
+    private void updateData(string kill, string death, string assist)
     {
 		bool scene_vis = CPH.ObsIsSourceVisible("Gameplay", "csgo_data");
 		
 		if((CPH.ObsGetCurrentScene() == "Gameplay") && scene_vis)
 		{
-			if(action == "kill")
-			{
-				CPH.ObsSetGdiText("csgo_data", "kills", data);
-			}
-			else if (action = "death")
-			{
-				CPH.ObsSetGdiText("csgo_data", "deaths", data);
-			}
-			else if(action == "assist")
-			{
-				CPH.ObsSetGdiText("csgo_data", "assists", data);
-			}
-			
+			CPH.ObsSetGdiText("csgo_data", "kills", kill);
+			CPH.ObsSetGdiText("csgo_data", "deaths", death);
+			CPH.ObsSetGdiText("csgo_data", "assists", assist);
 		}
     }
 }
